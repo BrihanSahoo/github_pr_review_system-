@@ -1,4 +1,6 @@
 
+import httpx
+
 from app.config import settings
 from fastapi import APIRouter, HTTPException, Request
 
@@ -7,7 +9,10 @@ import hmac
 import json
 import logging
 
+from app.github_auth import create_installation_token
+
 webhook_router = APIRouter()
+GITHUB_API = "https://api.github.com"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,7 +44,81 @@ def verify_github_signature(
     )
 
 
-def process_push_event(payload: dict):
+async def get_commit_changes(
+    installation_id: int,
+    repository_full_name: str,
+    commit_sha: str,
+) -> dict:
+
+    """
+    Fetch actual file changes for a GitHub commit.
+    """
+
+    token = await create_installation_token(
+        str(installation_id)
+    )
+
+    owner, repo = repository_full_name.split("/", 1)
+
+    url = (
+        f"{GITHUB_API}/repos/{owner}/{repo}"
+        f"/commits/{commit_sha}"
+    )
+
+    async with httpx.AsyncClient(timeout=30) as client:
+
+        response = await client.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2026-03-10",
+            },
+        )
+
+        response.raise_for_status()
+        data = response.json()
+
+    files = []
+
+    for file in data.get("files", []):
+
+        files.append({
+            "filename": file.get("filename"),
+            "status": file.get("status"),
+            "additions": file.get("additions"),
+            "deletions": file.get("deletions"),
+            "changes": file.get("changes"),
+            "patch": file.get("patch"),
+            "blob_url": file.get("blob_url"),
+            "raw_url": file.get("raw_url"),
+        })
+
+    return {
+        "commit_sha": data.get("sha"),
+        "commit_message": data.get("commit", {}).get(
+            "message"
+        ),
+        "author": data.get("commit", {}).get(
+            "author", {}
+        ),
+        "total_additions": data.get("stats", {}).get(
+            "additions"
+        ),
+        "total_deletions": data.get("stats", {}).get(
+            "deletions"
+        ),
+        "total_changes": data.get("stats", {}).get(
+            "total"
+        ),
+        "files": files,
+    }
+
+
+async def process_push_event(
+    payload: dict,
+    installation_id: int,
+):
 
     repository = payload.get("repository") or {}
     sender = payload.get("sender") or {}
@@ -59,31 +138,70 @@ def process_push_event(payload: dict):
     for commit in commits:
 
         commit_sha = commit.get("id")
-        message = commit.get("message")
-        author = commit.get("author") or {}
-        timestamp = commit.get("timestamp")
-
-        added = commit.get("added", [])
-        modified = commit.get("modified", [])
-        removed = commit.get("removed", [])
 
         logger.info("-----------------------------------")
-        logger.info("Commit: %s", commit_sha)
-        logger.info("Message: %s", message)
-        logger.info("Author: %s", author.get("name"))
-        logger.info("Email: %s", author.get("email"))
-        logger.info("Timestamp: %s", timestamp)
+        logger.info("Fetching commit: %s", commit_sha)
 
-        for file in added:
-            logger.info("ADDED: %s", file)
+        try:
+            changes = await get_commit_changes(
+                installation_id=installation_id,
+                repository_full_name=repo_name,
+                commit_sha=commit_sha,
+            )
 
-        for file in modified:
-            logger.info("MODIFIED: %s", file)
+            logger.info(
+                "Commit message: %s",
+                changes["commit_message"],
+            )
 
-        for file in removed:
-            logger.info("DELETED: %s", file)
+            logger.info(
+                "Total additions: %s",
+                changes["total_additions"],
+            )
+
+            logger.info(
+                "Total deletions: %s",
+                changes["total_deletions"],
+            )
+
+            for file in changes["files"]:
+
+                logger.info(
+                    "FILE: %s | STATUS: %s | +%s | -%s",
+                    file["filename"],
+                    file["status"],
+                    file["additions"],
+                    file["deletions"],
+                )
+
+                patch = file.get("patch")
+
+                if patch:
+                    logger.info(
+                        "ACTUAL CODE CHANGES:\n%s",
+                        patch,
+                    )
+                else:
+                    logger.info(
+                        "Patch unavailable for: %s",
+                        file["filename"],
+                    )
+
+        except httpx.HTTPStatusError as exc:
+            logger.exception(
+                "GitHub API error for commit %s: %s",
+                commit_sha,
+                exc.response.text,
+            )
+
+        except Exception:
+            logger.exception(
+                "Failed to process commit: %s",
+                commit_sha,
+            )
 
     logger.info("========== END PUSH EVENT ==========")
+
 
 
 @webhook_router.post("/webhooks/github")
@@ -127,7 +245,19 @@ async def github_webhook(request: Request):
     )
 
     if event == "push":
-        process_push_event(payload)
+
+        installation_id = installation.get("id")
+
+        if not installation_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing installation ID",
+            )
+
+        await process_push_event(
+            payload,
+            installation_id,
+        )
 
     elif event == "installation":
         logger.info(
