@@ -28,7 +28,7 @@ def verify_github_signature(body:bytes,signature:str | None)->bool:
     
     
 
-@webhook_router.post("/github/webhook")
+@webhook_router.post("/webhooks/github")
 async def github_webhook(request:Request):
     
     body = await request.body()
