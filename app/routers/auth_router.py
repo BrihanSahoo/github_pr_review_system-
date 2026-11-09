@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse
-from app.config import settings
+from app.auth.config import settings
 
 auth_route = APIRouter()
 

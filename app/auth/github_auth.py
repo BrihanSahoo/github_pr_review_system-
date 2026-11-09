@@ -2,7 +2,7 @@ import jwt
 import httpx
 import time
 
-from app.config import settings
+from app.auth.config import settings
 
 
 GITHUB_API = "https://api.github.com"

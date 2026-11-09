@@ -39,6 +39,18 @@ class Settings:
         "GITHUB_APP_SLUG"
     )
     
+    GEMINI_API_KEY : str = os.getenv(
+        "GEMINI_API_KEY"
+    )
+    
+    GEMINI_MODEL : str = os.getenv(
+        "GEMINI_MODEL"
+    )
+    
+    CHROMA_DB_PATH : str = os.getenv(
+        "CHROMA_DB_PATH"
+    )
+    
     
     def github_private_key(self)->str:
         path = Path(self.GITHUB_PRIVATE_KEY_PATH)
