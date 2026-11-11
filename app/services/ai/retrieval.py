@@ -1,4 +1,4 @@
-from auth.vector_db_config import retriever
+from app.auth.vector_db_config import retriever
 
 async def retrieve_context(
     repo_name : str,

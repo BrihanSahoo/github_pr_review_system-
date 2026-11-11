@@ -1,5 +1,5 @@
 from langchain_chroma import Chroma
-from auth.llm_config import embeddings
+from app.auth.llm_config import embeddings
 
 vector_store = Chroma(
     collection_name="github_knowledge",

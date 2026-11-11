@@ -1,5 +1,5 @@
 from langchain_core.documents import Document
-from auth.vector_db_config import vector_store
+from app.auth.vector_db_config import vector_store
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 

@@ -1,4 +1,4 @@
-from auth.config import settings
+from app.auth.config import settings
 from langchain_google_genai import (
     ChatGoogleGenerativeAI,
     GoogleGenerativeAIEmbeddings

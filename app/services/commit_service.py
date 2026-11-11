@@ -1,7 +1,7 @@
 
 import httpx
 
-from auth.github_auth import create_installation_token
+from app.auth.github_auth import create_installation_token
 GITHUB_API = "https://api.github.com"
 
 
