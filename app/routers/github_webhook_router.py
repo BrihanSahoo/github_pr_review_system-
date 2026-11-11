@@ -50,7 +50,10 @@ async def process_push_event(
     payload: dict,
     installation_id: int,
 ):
-    process_push_event_service(payload,installation_id)
+    return await process_push_event_service(
+        payload,
+        installation_id
+    )
 
     
 

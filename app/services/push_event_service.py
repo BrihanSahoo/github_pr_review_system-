@@ -1,103 +1,68 @@
-
 import logging
 
-import httpx
+from app.services.ai import push_analysis_graph
 
-from app.services.commit_service import get_commit_changes_service
-
-
-GITHUB_API = "https://api.github.com"
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 
 logger = logging.getLogger(__name__)
 
+
 async def process_push_event_service(
     payload: dict,
-    installation_id: int,
+    installation_id: int
 ):
 
-    repository = payload.get("repository") or {}
-    sender = payload.get("sender") or {}
+    repository = payload.get("repository", {})
 
     repo_name = repository.get("full_name")
-    branch = payload.get("ref")
-    username = sender.get("login")
+
+    if not repo_name:
+        logger.warning("Repository name missing")
+        return []
 
     commits = payload.get("commits", [])
 
-    logger.info("========== GITHUB PUSH EVENT ==========")
-    logger.info("Repository: %s", repo_name)
-    logger.info("Branch: %s", branch)
-    logger.info("Pushed by: %s", username)
-    logger.info("Total commits: %s", len(commits))
+    if not commits:
+        logger.info("No commits found in push event")
+        return []
+
+    results = []
 
     for commit in commits:
 
         commit_sha = commit.get("id")
 
-        logger.info("-----------------------------------")
-        logger.info("Fetching commit: %s", commit_sha)
+        if not commit_sha:
+            continue
 
-        try:
-            changes = await get_commit_changes_service(
-                installation_id=installation_id,
-                repository_full_name=repo_name,
-                commit_sha=commit_sha,
-            )
+        initial_state = {
 
-            logger.info(
-                "Commit message: %s",
-                changes["commit_message"],
-            )
+            "installation_id": installation_id,
 
-            logger.info(
-                "Total additions: %s",
-                changes["total_additions"],
-            )
+            "repo_name": repo_name,
 
-            logger.info(
-                "Total deletions: %s",
-                changes["total_deletions"],
-            )
+            "commit_sha": commit_sha,
 
-            for file in changes["files"]:
+            "push_event": payload
+        }
 
-                logger.info(
-                    "FILE: %s | STATUS: %s | +%s | -%s",
-                    file["filename"],
-                    file["status"],
-                    file["additions"],
-                    file["deletions"],
-                )
+        logger.info(
+            "Starting AI analysis for repository=%s commit=%s",
+            repo_name,
+            commit_sha
+        )
 
-                patch = file.get("patch")
+        result = await push_analysis_graph.ainvoke(
+            initial_state
+        )
 
-                if patch:
-                    logger.info(
-                        "ACTUAL CODE CHANGES:\n%s",
-                        patch,
-                    )
-                else:
-                    logger.info(
-                        "Patch unavailable for: %s",
-                        file["filename"],
-                    )
+        results.append({
+            "commit_sha": commit_sha,
+            "analysis": result.get("analysis")
+        })
 
-        except httpx.HTTPStatusError as exc:
-            logger.exception(
-                "GitHub API error for commit %s: %s",
-                commit_sha,
-                exc.response.text,
-            )
+        logger.info(
+            "AI analysis completed for commit=%s",
+            commit_sha
+        )
 
-        except Exception:
-            logger.exception(
-                "Failed to process commit: %s",
-                commit_sha,
-            )
-
-    logger.info("========== END PUSH EVENT ==========")
+    return results
