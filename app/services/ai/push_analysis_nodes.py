@@ -1,10 +1,10 @@
 import json
 
-from app.services.commit_service import get_commit_changes_service
-from app.services.ai.graph_state import PushAnalysisState
-from app.services.ai.retrieval import retrieve_context
-from app.services.ai.prompts import push_analysis_prompt
-from app.auth.llm_config import llm
+from services.commit_service import get_commit_changes_service
+from services.ai.graph_state import PushAnalysisState
+from services.ai.retrieval import retrieve_context
+from services.ai.prompts import push_analysis_prompt
+from auth.llm_config import llm
 
 
 

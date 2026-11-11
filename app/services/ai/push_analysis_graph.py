@@ -1,6 +1,6 @@
 from langgraph.graph import START,END,StateGraph
-from app.services.ai.graph_state import PushAnalysisState
-from app.services.ai.push_analysis_nodes import (
+from services.ai.graph_state import PushAnalysisState
+from services.ai.push_analysis_nodes import (
     fetch_changes_node,
     retrieve_context_node,
     analyze_changes_node

@@ -1,6 +1,6 @@
 import logging
 
-from app.services.ai import push_analysis_graph
+from services.ai import push_analysis_graph
 
 
 logger = logging.getLogger(__name__)
