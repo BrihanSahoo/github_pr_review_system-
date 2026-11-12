@@ -15,7 +15,7 @@ def index_repository_knowledge(
     for index,item in enumerate(documents):
         chunks = splitter.split_text(item['content'])
         
-        for chunk,chunk_index in enumerate(chunks):
+        for chunk_index, chunk in enumerate(chunks):
             docs.append(
                 Document(
                     page_content=chunk,

@@ -12,3 +12,4 @@ langchain-chroma
 chromadb 
 pydantic 
 python-dotenv
+supabase

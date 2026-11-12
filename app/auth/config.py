@@ -51,6 +51,23 @@ class Settings:
         "CHROMA_DB_PATH"
     )
     
+    SUPABASE_URL : str = os.getenv(
+        "SUPABASE_URL"
+    )
+    SUPABASE_KEY : str = os.getenv(
+        "SUPABASE_KEY"
+    )
+    
+    JWT_SECRET_KEY : str = os.getenv(
+        "JWT_SECRET_KEY"
+    )
+    JWT_ALGORITHM : str = os.getenv(
+        "JWT_ALGORITHM"
+    )
+    JWT_EXPIRE_MINUTES : str = os.getenv(
+        "JWT_EXPIRE_MINUTES"
+    )
+    
     
     def github_private_key(self)->str:
         path = Path(self.GITHUB_PRIVATE_KEY_PATH)

@@ -2,7 +2,7 @@
 import httpx
 
 from app.auth.config import settings
-from app.services.push_event_service import process_push_event_service
+from app.services.github.push_event_service import process_push_event_service
 from fastapi import APIRouter, HTTPException, Request
 
 import hashlib
