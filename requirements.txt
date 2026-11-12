@@ -14,4 +14,4 @@ pydantic
 python-dotenv
 supabase
 pydantic[email]
-pwdlib
+pwdlib[argon2]
