@@ -13,3 +13,4 @@ chromadb
 pydantic 
 python-dotenv
 supabase
+pydantic[email]
